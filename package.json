@@ -1,0 +1,16 @@
+{
+    "name": "vidsave",
+    "version": "1.0.0",
+    "description": "VidSave — Universal video downloader. Runs backend + frontend concurrently.",
+    "private": true,
+    "scripts": {
+        "start": "concurrently --kill-others-on-fail \"npm run backend\" \"npm run frontend\"",
+        "backend": "cd backend && node server.js",
+        "frontend": "cd frontend && npx vite --port 9000",
+        "install:all": "npm install && cd backend && npm install && cd ../frontend && npm install",
+        "setup": "npm run install:all"
+    },
+    "devDependencies": {
+        "concurrently": "^8.2.2"
+    }
+}
