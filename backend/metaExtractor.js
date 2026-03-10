@@ -1,0 +1,89 @@
+const puppeteer = require('puppeteer');
+
+/**
+ * Extracts the raw MP4 video URL from a Facebook or Meta Ads Library page
+ * by automating the browser and inspecting the DOM for the loaded <video> element.
+ * 
+ * @param {string} url The Facebook/Meta Ad Library URL
+ * @returns {Promise<string>} The extracted raw CDN .mp4 URL
+ */
+async function extractFacebookVideoUrl(url) {
+    let browser;
+    try {
+        console.log(`[MetaExtractor] Launching headless browser for: ${url}`);
+        // Use headless mode. Disable sandbox for easier Docker/Linux compatibility if deployed later.
+        browser = await puppeteer.launch({
+            headless: 'new',
+            args: ['--no-sandbox', '--disable-setuid-sandbox']
+        });
+
+        const page = await browser.newPage();
+
+        // Stealth: Set a realistic user agent
+        await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36');
+        await page.setExtraHTTPHeaders({
+            'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+        });
+
+        console.log(`[MetaExtractor] Navigating to page...`);
+        // Wait until network is mostly idle to ensure dynamic video elements have loaded
+        await page.goto(url, { waitUntil: 'networkidle2', timeout: 30000 });
+
+        console.log(`[MetaExtractor] Waiting for <video> element...`);
+
+        // Wait up to 15 seconds for a video tag to appear and have a valid 'src'
+        // Some FB video players are deeply nested or load dynamically.
+        const videoSrc = await page.evaluate(async () => {
+            return new Promise((resolve) => {
+                const checkVideo = () => {
+                    const videoEl = document.querySelector('video');
+                    if (videoEl && videoEl.src && videoEl.src.includes('.mp4')) {
+                        resolve(videoEl.src);
+                        return true;
+                    }
+                    return false;
+                };
+
+                // Check immediately
+                if (checkVideo()) return;
+
+                // Set up a MutationObserver to watch the DOM for new video elements
+                const observer = new MutationObserver(() => {
+                    if (checkVideo()) {
+                        observer.disconnect();
+                    }
+                });
+
+                observer.observe(document.body, { childList: true, subtree: true });
+
+                // Failsafe timeout inside the browser context
+                setTimeout(() => {
+                    observer.disconnect();
+                    // Final desperate check
+                    const finalize = document.querySelector('video');
+                    resolve(finalize ? finalize.src : null);
+                }, 14000);
+            });
+        });
+
+        if (!videoSrc) {
+            throw new Error('Could not find a <video> element with an MP4 source on the page.');
+        }
+
+        console.log(`[MetaExtractor] Found MP4 URL: ${videoSrc.substring(0, 80)}...`);
+        return videoSrc;
+
+    } catch (error) {
+        console.error(`[MetaExtractor] Error extracting video: ${error.message}`);
+        throw error;
+    } finally {
+        if (browser) {
+            await browser.close();
+            console.log(`[MetaExtractor] Headless browser closed.`);
+        }
+    }
+}
+
+module.exports = {
+    extractFacebookVideoUrl
+};

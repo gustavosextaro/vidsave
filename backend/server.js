@@ -350,6 +350,60 @@ async function runCobaltDownload(videoUrl, res) {
     }
 }
 
+// ─── Headless Meta Extractor implementation (Facebook specific) ────────────
+
+async function runFacebookDownload(videoUrl, res) {
+    console.log(`[VidSave] Platform: Facebook | Routing via Headless Puppeteer...`);
+
+    try {
+        // Run Puppeteer headless to mimic a real manual inspection
+        const directMp4Url = await extractFacebookVideoUrl(videoUrl);
+
+        if (!directMp4Url) {
+            throw new Error("Puppeteer could not locate an .mp4 tag in the DOM.");
+        }
+
+        console.log(`[VidSave] Fetching direct stream from Meta CDN...`);
+        const mediaStream = await fetch(directMp4Url, {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/120.0.0.0 Safari/537.36',
+                'Accept-Language': 'pt-BR,pt;q=0.9',
+            }
+        });
+
+        if (!mediaStream.ok) {
+            throw new Error(`Failed to fetch stream from Facebook CDN. Status: ${mediaStream.status}`);
+        }
+
+        res.setHeader("Content-Type", "video/mp4");
+        res.setHeader("Content-Disposition", `attachment; filename="vidsave_facebook.mp4"`);
+
+        if (mediaStream.body.pipeTo) {
+            const writableStream = new WritableStream({
+                write(chunk) {
+                    res.write(chunk);
+                },
+                close() {
+                    res.end();
+                },
+                abort(err) {
+                    console.error("[VidSave] Facebook stream aborted", err);
+                    res.end();
+                }
+            });
+            await mediaStream.body.pipeTo(writableStream);
+        } else {
+            const { Readable } = require('stream');
+            const readableNodeStream = Readable.fromWeb(mediaStream.body);
+            readableNodeStream.pipe(res);
+        }
+
+    } catch (err) {
+        console.error(`[VidSave] Headless Facebook bypass failed: ${err.message}. Defaulting to yt-dlp fallback.`);
+        runDownload(videoUrl, res);
+    }
+}
+
 // ─── Express setup ────────────────────────────────────────────────────────────
 
 app.use(cors());
@@ -357,6 +411,7 @@ app.use(express.json());
 
 // Load converter routes
 const convertRouter = require("./convert");
+const { extractFacebookVideoUrl } = require("./metaExtractor");
 app.use("/api", convertRouter);
 
 // Health check
@@ -383,8 +438,11 @@ app.get("/download", (req, res) => {
     const trimmed = url.trim();
     if (!isSupported(trimmed)) return res.status(400).json({ error: "Unsupported platform or invalid URL." });
 
-    if (getPlatformKey(trimmed) === "youtube") {
+    const platform = getPlatformKey(trimmed);
+    if (platform === "youtube") {
         runCobaltDownload(trimmed, res);
+    } else if (platform === "facebook") {
+        runFacebookDownload(trimmed, res);
     } else {
         runDownload(trimmed, res);
     }
@@ -397,8 +455,11 @@ app.post("/download", (req, res) => {
     const trimmed = url.trim();
     if (!isSupported(trimmed)) return res.status(400).json({ error: "Unsupported platform or invalid URL." });
 
-    if (getPlatformKey(trimmed) === "youtube") {
+    const platform = getPlatformKey(trimmed);
+    if (platform === "youtube") {
         runCobaltDownload(trimmed, res);
+    } else if (platform === "facebook") {
+        runFacebookDownload(trimmed, res);
     } else {
         runDownload(trimmed, res);
     }
