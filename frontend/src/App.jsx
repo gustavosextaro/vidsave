@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 
+const API_BASE = import.meta.env.VITE_API_URL || "";
+
 const PLATFORMS = {
   "youtube.com": { name: "YouTube", color: "#FF0000", icon: "▶" },
   "youtu.be": { name: "YouTube", color: "#FF0000", icon: "▶" },
@@ -83,7 +85,7 @@ function DownloaderModule() {
       abortRef.current = new AbortController();
 
       const response = await fetch(
-        `/download?url=${encodeURIComponent(url.trim())}`,
+        `${API_BASE}/download?url=${encodeURIComponent(url.trim())}`,
         { signal: abortRef.current.signal }
       );
 
@@ -148,7 +150,7 @@ function DownloaderModule() {
 
       {status === "idle" ? (
         <>
-          <div className="input-wrap">
+          <div className="input-wrap" style={{ marginBottom: platform ? '4px' : '16px' }}>
             <input
               type="text"
               className="input"
@@ -158,13 +160,13 @@ function DownloaderModule() {
               spellCheck="false"
               autoComplete="off"
             />
-            {platform && (
-              <div className="platform-hint" style={{ color: platform.color }}>
-                <span style={{ marginRight: 6 }}>{platform.icon}</span>
-                {platform.name}
-              </div>
-            )}
           </div>
+          {platform && (
+            <div className="platform-hint" style={{ color: platform.color }}>
+              <span style={{ marginRight: 6 }}>{platform.icon}</span>
+              {platform.name} detected
+            </div>
+          )}
 
           <button
             className="btn"
@@ -285,7 +287,7 @@ function ConverterModule() {
       formData.append("file", file);
       formData.append("type", type);
 
-      const response = await fetch("/api/convert", {
+      const response = await fetch(`${API_BASE}/api/convert`, {
         method: "POST",
         body: formData,
         signal: abortRef.current.signal,
@@ -615,18 +617,15 @@ export default function App() {
         }
 
         .platform-hint {
-          position: absolute;
-          right: 12px;
-          top: 50%;
-          transform: translateY(-50%);
-          font-size: 10px;
+          font-size: 11px;
           letter-spacing: 0.05em;
-          background: rgba(255,255,255,0.05);
-          padding: 4px 8px;
-          border-radius: 3px;
           display: flex;
           align-items: center;
+          width: 100%;
+          justify-content: flex-start;
+          margin-bottom: 16px;
           animation: fadeIn 0.3s ease;
+          opacity: 0.8;
         }
 
         @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }

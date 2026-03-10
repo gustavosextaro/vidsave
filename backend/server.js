@@ -7,7 +7,7 @@ const os = require("os");
 const crypto = require("crypto");
 
 const app = express();
-const PORT = 3001;
+const PORT = process.env.PORT || 3001;
 
 // ─── Paths ────────────────────────────────────────────────────────────────────
 
@@ -439,9 +439,11 @@ app.get("/download", (req, res) => {
     if (!isSupported(trimmed)) return res.status(400).json({ error: "Unsupported platform or invalid URL." });
 
     const platform = getPlatformKey(trimmed);
-    if (platform === "youtube") {
+    const isPublic = process.env.IS_PUBLIC_SERVER === "true";
+
+    if (platform === "youtube" && !isPublic) {
         runCobaltDownload(trimmed, res);
-    } else if (platform === "facebook") {
+    } else if (platform === "facebook" && !isPublic) {
         runFacebookDownload(trimmed, res);
     } else {
         runDownload(trimmed, res);
@@ -456,9 +458,11 @@ app.post("/download", (req, res) => {
     if (!isSupported(trimmed)) return res.status(400).json({ error: "Unsupported platform or invalid URL." });
 
     const platform = getPlatformKey(trimmed);
-    if (platform === "youtube") {
+    const isPublic = process.env.IS_PUBLIC_SERVER === "true";
+
+    if (platform === "youtube" && !isPublic) {
         runCobaltDownload(trimmed, res);
-    } else if (platform === "facebook") {
+    } else if (platform === "facebook" && !isPublic) {
         runFacebookDownload(trimmed, res);
     } else {
         runDownload(trimmed, res);
