@@ -282,10 +282,10 @@ function runDownload(videoUrl, res) {
 // ─── Cobalt API implementation (YouTube specific) ──────────────────────────
 
 async function runCobaltDownload(videoUrl, res) {
-    console.log(`[VidSave] Platform: YouTube | Routing via Cobalt API...`);
+    console.log(`[VidSave] Platform: YouTube | Routing via LOCAL Cobalt API (Docker)...`);
 
     try {
-        const cobaltRes = await fetch("https://api.cobalt.tools", {
+        const cobaltRes = await fetch("http://localhost:9001", {
             method: "POST",
             headers: {
                 "Accept": "application/json",

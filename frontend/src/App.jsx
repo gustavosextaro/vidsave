@@ -92,9 +92,15 @@ function DownloaderModule() {
         throw new Error(data.error || `Server error ${response.status}`);
       }
 
-      const blob = await response.blob();
-      const objectUrl = URL.createObjectURL(blob);
-      const name = `vidsave_${(platform.name || "video").replace(/[^a-zA-Z0-9]/g, "_")}.mp4`;
+      const rawBlob = await response.blob();
+
+      // Extract robust name
+      const safePlatform = platform?.name ? platform.name.replace(/[^a-zA-Z0-9]/g, "_") : "video";
+      const name = `vidsave_${safePlatform}.mp4`;
+
+      // Force into a File object (Chrome/Safari respect this more natively for blob URLs)
+      const fileBlob = new File([rawBlob], name, { type: "video/mp4" });
+      const objectUrl = URL.createObjectURL(fileBlob);
 
       if (stepTimerRef.current) clearInterval(stepTimerRef.current);
       setStepIndex(PIPELINE_STEPS.length - 1);
@@ -114,7 +120,7 @@ function DownloaderModule() {
     if (!blobUrl) return;
     const a = document.createElement("a");
     a.href = blobUrl;
-    a.download = saveName;
+    a.download = saveName || "vidsave_video.mp4";
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);

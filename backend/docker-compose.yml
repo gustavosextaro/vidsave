@@ -1,0 +1,13 @@
+version: '3'
+
+services:
+  cobalt-api:
+    image: ghcr.io/imputnet/cobalt:latest
+    container_name: vidsave-cobalt
+    ports:
+      - "9001:9000"
+    environment:
+      # Mandatory: Tells Cobalt what its own URL is
+      - API_URL=http://localhost:9001
+      - API_PORT=9000
+    restart: unless-stopped

@@ -35,22 +35,51 @@ async function extractFacebookVideoUrl(url) {
         // Some FB video players are deeply nested or load dynamically.
         const videoSrc = await page.evaluate(async () => {
             return new Promise((resolve) => {
-                const checkVideo = () => {
-                    const videoEl = document.querySelector('video');
-                    if (videoEl && videoEl.src && videoEl.src.includes('.mp4')) {
-                        resolve(videoEl.src);
-                        return true;
+                const getBestVideoSrc = () => {
+                    // 1. Try to find a video inside the active popup modal
+                    const dialogs = document.querySelectorAll('[role="dialog"]');
+                    if (dialogs.length > 0) {
+                        const videoInDialog = dialogs[dialogs.length - 1].querySelector('video');
+                        if (videoInDialog && videoInDialog.src && videoInDialog.src.includes('.mp4')) {
+                            return videoInDialog.src;
+                        }
                     }
-                    return false;
+
+                    // 2. Fallback: Find the video with the largest rendered area (the focused ad)
+                    const videos = Array.from(document.querySelectorAll('video')).filter(v => v.src && v.src.includes('.mp4'));
+                    if (videos.length === 0) return null;
+
+                    let largestVideo = videos[0];
+                    let maxArea = largestVideo.offsetWidth * largestVideo.offsetHeight;
+
+                    for (let i = 1; i < videos.length; i++) {
+                        const area = videos[i].offsetWidth * videos[i].offsetHeight;
+                        if (area > maxArea) {
+                            maxArea = area;
+                            largestVideo = videos[i];
+                        }
+                    }
+
+                    // Only return if it actually has dimensions (is rendered)
+                    if (maxArea > 0) return largestVideo.src;
+
+                    // 3. Absolute fallback: return the first one found
+                    return videos[0].src;
                 };
 
                 // Check immediately
-                if (checkVideo()) return;
+                const initialSrc = getBestVideoSrc();
+                if (initialSrc) {
+                    resolve(initialSrc);
+                    return;
+                }
 
                 // Set up a MutationObserver to watch the DOM for new video elements
                 const observer = new MutationObserver(() => {
-                    if (checkVideo()) {
+                    const src = getBestVideoSrc();
+                    if (src) {
                         observer.disconnect();
+                        resolve(src);
                     }
                 });
 
@@ -59,9 +88,7 @@ async function extractFacebookVideoUrl(url) {
                 // Failsafe timeout inside the browser context
                 setTimeout(() => {
                     observer.disconnect();
-                    // Final desperate check
-                    const finalize = document.querySelector('video');
-                    resolve(finalize ? finalize.src : null);
+                    resolve(getBestVideoSrc());
                 }, 14000);
             });
         });
