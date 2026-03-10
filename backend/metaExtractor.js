@@ -11,10 +11,18 @@ async function extractFacebookVideoUrl(url) {
     let browser;
     try {
         console.log(`[MetaExtractor] Launching headless browser for: ${url}`);
-        // Use headless mode. Disable sandbox for easier Docker/Linux compatibility if deployed later.
+        // Use headless mode. Configure aggressive memory limits for 512MB RAM free-tiers
         browser = await puppeteer.launch({
             headless: 'new',
-            args: ['--no-sandbox', '--disable-setuid-sandbox']
+            executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || puppeteer.executablePath(),
+            args: [
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-dev-shm-usage',
+                '--disable-gpu',
+                '--disable-software-rasterizer',
+                '--single-process'
+            ]
         });
 
         const page = await browser.newPage();
