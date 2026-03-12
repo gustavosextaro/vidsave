@@ -1,10 +1,13 @@
-FROM node:18-bullseye-slim
+FROM node:18-bookworm-slim
+
+# Prevent interactive prompts during build
+ENV DEBIAN_FRONTEND=noninteractive
 
 # Install ffmpeg, python3 (for yt-dlp) and curl, plus chromium for Puppeteer
 RUN apt-get update && \
-    apt-get install -y ffmpeg python3 curl chromium \
-    fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 \
-    --no-install-recommends && \
+    apt-get install -y --no-install-recommends \
+    ffmpeg python3 curl chromium \
+    fonts-ipafont-gothic fonts-wqy-zenhei fonts-thai-tlwg fonts-kacst fonts-freefont-ttf libxss1 && \
     curl -L https://github.com/yt-dlp/yt-dlp/releases/latest/download/yt-dlp -o /usr/local/bin/yt-dlp && \
     chmod a+rx /usr/local/bin/yt-dlp && \
     apt-get clean && \
