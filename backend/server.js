@@ -419,6 +419,11 @@ app.get("/health", (_req, res) => {
     res.json({ status: "ok", engine: "yt-dlp", ffmpeg: FFMPEG_PATH });
 });
 
+// Keep-alive ping endpoint (for UptimeRobot)
+app.get("/ping", (_req, res) => {
+    res.send("pong");
+});
+
 // Validate URL (fast — no download)
 app.post("/validate", (req, res) => {
     const { url } = req.body;
