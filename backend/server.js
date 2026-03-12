@@ -116,7 +116,7 @@ function getDownloadArgs(videoUrl, outputTemplate) {
                 "--rm-cache-dir",
                 "--extractor-args", "youtube:player_client=ios,android,web",
                 "--format",
-                "bestvideo[ext=mp4][vcodec!*=av01]+bestaudio[ext=m4a]/bestvideo+bestaudio/best[ext=mp4]/best",
+                "bestvideo[height<=720][ext=mp4]+bestaudio[ext=m4a]/best[height<=720][ext=mp4]/best",
                 ...common,
                 "--postprocessor-args", "ffmpeg:-c:v copy -c:a aac",
             ];
@@ -441,11 +441,10 @@ app.get("/download", (req, res) => {
     const platform = getPlatformKey(trimmed);
     const isPublic = process.env.IS_PUBLIC_SERVER === "true";
 
-    if (platform === "youtube" && !isPublic) {
-        runCobaltDownload(trimmed, res);
-    } else if (platform === "facebook" && !isPublic) {
+    if (platform === "facebook" && !isPublic) {
         runFacebookDownload(trimmed, res);
     } else {
+        // Now handles YouTube directly via yt-dlp at 720p
         runDownload(trimmed, res);
     }
 });
