@@ -237,6 +237,7 @@ const CONVERSION_TYPES = [
 ];
 
 function ConverterModule() {
+  const [page, setPage] = useState(0);
   const [type, setType] = useState(CONVERSION_TYPES[0].id);
   const [file, setFile] = useState(null);
   const [status, setStatus] = useState("idle");
@@ -365,7 +366,7 @@ function ConverterModule() {
       {status === "idle" ? (
         <>
           <div className="type-grid">
-            {CONVERSION_TYPES.map((t) => (
+            {CONVERSION_TYPES.slice(page * 6, (page + 1) * 6).map((t) => (
               <div
                 key={t.id}
                 className={`type-card ${type === t.id ? 'active' : ''}`}
@@ -378,6 +379,21 @@ function ConverterModule() {
                 </div>
               </div>
             ))}
+          </div>
+
+          <div className="pagination-wrap">
+            <div className="page-dots">
+              {[0, 1].map(p => (
+                <div 
+                  key={p} 
+                  className={`page-dot ${page === p ? 'active' : ''}`}
+                  onClick={() => setPage(p)}
+                />
+              ))}
+            </div>
+            <button className="btn-page" onClick={() => setPage(page === 0 ? 1 : 0)}>
+              {page === 0 ? "Mais opções" : "Voltar"} →
+            </button>
           </div>
 
           <label
@@ -644,16 +660,50 @@ export default function App() {
           display: grid;
           grid-template-columns: repeat(2, 1fr);
           gap: 10px;
-          margin-bottom: 24px;
-          max-height: 420px;
-          overflow-y: auto;
-          padding-right: 4px;
+          margin-bottom: 20px;
         }
 
-        /* Custom scrollbar for type-grid */
-        .type-grid::-webkit-scrollbar { width: 4px; }
-        .type-grid::-webkit-scrollbar-track { background: transparent; }
-        .type-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
+        .pagination-wrap {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          margin-bottom: 20px;
+          padding: 0 4px;
+        }
+
+        .page-dots {
+          display: flex;
+          gap: 6px;
+        }
+
+        .page-dot {
+          width: 6px;
+          height: 6px;
+          border-radius: 50%;
+          background: rgba(255,255,255,0.1);
+          cursor: pointer;
+          transition: all 0.2s;
+        }
+
+        .page-dot.active {
+          background: rgba(0,200,150,1);
+          transform: scale(1.2);
+        }
+
+        .btn-page {
+          background: transparent;
+          border: none;
+          color: rgba(0,200,150,1);
+          font-size: 10px;
+          font-family: 'DM Mono', monospace;
+          text-transform: uppercase;
+          letter-spacing: 0.1em;
+          cursor: pointer;
+          opacity: 0.7;
+          transition: opacity 0.2s;
+        }
+
+        .btn-page:hover { opacity: 1; }
 
         .type-card {
           background: rgba(255,255,255,0.02);
@@ -664,26 +714,34 @@ export default function App() {
           align-items: center;
           gap: 12px;
           cursor: pointer;
-          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
           text-align: left;
+          height: 64px;
         }
 
         .type-info {
           display: flex;
           flex-direction: column;
-          gap: 2px;
+          gap: 1px;
+          overflow: hidden;
         }
 
         .type-label {
           color: rgba(255,255,255,0.8);
           font-size: 11px;
           font-weight: 500;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .type-sub {
-          color: rgba(255,255,255,0.3);
+          color: rgba(255,255,255,0.2);
           font-size: 9px;
           letter-spacing: 0.02em;
+          white-space: nowrap;
+          overflow: hidden;
+          text-overflow: ellipsis;
         }
 
         .type-card:hover {
