@@ -279,13 +279,14 @@ function runDownload(videoUrl, res) {
     });
 }
 
-// ─── Cobalt API implementation (YouTube specific) ──────────────────────────
+// ─── Cobalt API implementation (YouTube 1080p Hybrid) ─────────────────────
 
 async function runCobaltDownload(videoUrl, res) {
-    console.log(`[VidSave] Platform: YouTube | Routing via LOCAL Cobalt API (Docker)...`);
+    const PUBLIC_COBALT_API = "https://api.cobalt.tools"; // Public Instance
+    console.log(`[VidSave] Platform: YouTube | Attempting 1080p via Public Cobalt API...`);
 
     try {
-        const cobaltRes = await fetch("http://localhost:9001", {
+        const cobaltRes = await fetch(PUBLIC_COBALT_API, {
             method: "POST",
             headers: {
                 "Accept": "application/json",
@@ -299,56 +300,44 @@ async function runCobaltDownload(videoUrl, res) {
             }),
         });
 
-        if (!cobaltRes.ok) {
-            throw new Error(`Cobalt HTTP error! status: ${cobaltRes.status}`);
-        }
+        if (!cobaltRes.ok) throw new Error(`Cobalt API returned status ${cobaltRes.status}`);
 
         const data = await cobaltRes.json();
+        if (data.status === "error") throw new Error(data.text || "Cobalt API error");
 
-        if (data.status === "error" || !data.url) {
-            throw new Error(`Cobalt returned error status: ${JSON.stringify(data)}`);
-        }
+        // Simple streaming for Cobalt's tunnel/redirect
+        const downloadUrl = data.url;
+        if (!downloadUrl) throw new Error("No download URL returned from Cobalt");
 
-        console.log(`[VidSave] Cobalt successful. Piping stream: ${data.url.substring(0, 50)}...`);
+        const mediaStream = await fetch(downloadUrl);
+        if (!mediaStream.ok) throw new Error("Failed to reach Cobalt media stream");
 
-        // Fetch the actual media stream
-        const mediaStream = await fetch(data.url);
-        if (!mediaStream.ok) {
-            throw new Error(`Failed to fetch stream from Cobalt URL. Status: ${mediaStream.status}`);
-        }
-
-        // Set headers for direct browser download
+        const safeFilename = `vidsave_yt_${Date.now()}.mp4`;
         res.setHeader("Content-Type", "video/mp4");
-        res.setHeader("Content-Disposition", `attachment; filename="vidsave_youtube.mp4"`);
+        res.setHeader("Content-Disposition", `attachment; filename="${safeFilename}"`);
+        res.setHeader("X-Platform", "YouTube (1080p)");
 
-        // Use Node 18+ Web Streams API feature to pipe to Express response
         if (mediaStream.body.pipeTo) {
             const writableStream = new WritableStream({
-                write(chunk) {
-                    res.write(chunk);
-                },
-                close() {
-                    res.end();
-                },
-                abort(err) {
-                    console.error("[VidSave] Stream aborted", err);
-                    res.end();
-                }
+                write(chunk) { res.write(chunk); },
+                close() { res.end(); },
+                abort(err) { res.end(); }
             });
             await mediaStream.body.pipeTo(writableStream);
         } else {
-            // Polyfill / fallback for Node streams
             const { Readable } = require('stream');
             const readableNodeStream = Readable.fromWeb(mediaStream.body);
             readableNodeStream.pipe(res);
         }
 
     } catch (err) {
-        console.error(`[VidSave] Cobalt API failed. Falling back to yt-dlp. Error: ${err.message}`);
-        // Fallback to existing yt-dlp implementation
+        console.warn(`[VidSave] Public Cobalt failed (${err.message}). Falling back to local 720p engine.`);
+        // Pass control back to the local yt-dlp engine
         runDownload(videoUrl, res);
     }
 }
+
+
 
 // ─── Headless Meta Extractor implementation (Facebook specific) ────────────
 
@@ -446,10 +435,12 @@ app.get("/download", (req, res) => {
     const platform = getPlatformKey(trimmed);
     const isPublic = process.env.IS_PUBLIC_SERVER === "true";
 
-    if (platform === "facebook" && !isPublic) {
+    if (platform === "youtube") {
+        // Try Cobalt (1080p) first, falls back to yt-dlp (720p) inside the function
+        runCobaltDownload(trimmed, res);
+    } else if (platform === "facebook" && !isPublic) {
         runFacebookDownload(trimmed, res);
     } else {
-        // Now handles YouTube directly via yt-dlp at 720p
         runDownload(trimmed, res);
     }
 });
