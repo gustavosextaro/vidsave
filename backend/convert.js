@@ -93,6 +93,42 @@ router.post("/convert", upload.single("file"), async (req, res) => {
             downloadName = `${baseName}.jpg`;
             contentType = "image/jpeg";
 
+        } else if (type === "pdf-to-ppt") {
+            await runLibreOffice(inputFile, tmpDir, "pptx", "impress_pdf_import");
+            outputFile = path.join(tmpDir, `${path.parse(inputFile).name}.pptx`);
+            downloadName = `${baseName}.pptx`;
+            contentType = "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+
+        } else if (type === "ppt-to-pdf") {
+            await runLibreOffice(inputFile, tmpDir, "pdf");
+            outputFile = path.join(tmpDir, `${path.parse(inputFile).name}.pdf`);
+            downloadName = `${baseName}.pdf`;
+            contentType = "application/pdf";
+
+        } else if (type === "excel-to-pdf") {
+            await runLibreOffice(inputFile, tmpDir, "pdf");
+            outputFile = path.join(tmpDir, `${path.parse(inputFile).name}.pdf`);
+            downloadName = `${baseName}.pdf`;
+            contentType = "application/pdf";
+
+        } else if (type === "jpg-to-pdf") {
+            await runLibreOffice(inputFile, tmpDir, "pdf");
+            outputFile = path.join(tmpDir, `${path.parse(inputFile).name}.pdf`);
+            downloadName = `${baseName}.pdf`;
+            contentType = "application/pdf";
+
+        } else if (type === "html-to-pdf") {
+            await runLibreOffice(inputFile, tmpDir, "pdf");
+            outputFile = path.join(tmpDir, `${path.parse(inputFile).name}.pdf`);
+            downloadName = `${baseName}.pdf`;
+            contentType = "application/pdf";
+
+        } else if (type === "pdf-to-pdfa") {
+            await runLibreOffice(inputFile, tmpDir, "pdf:writer_pdf_Export");
+            outputFile = path.join(tmpDir, `${path.parse(inputFile).name}.pdf`);
+            downloadName = `${baseName}.pdf`;
+            contentType = "application/pdf";
+
         } else {
             throw new Error("Invalid conversion type");
         }

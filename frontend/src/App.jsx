@@ -224,10 +224,16 @@ function DownloaderModule() {
 // CONVERTER MODULE
 // ————————————————————————————————————————————————————————————————————————————
 const CONVERSION_TYPES = [
-  { id: "word-to-pdf", label: "Word → PDF", icon: "W" },
-  { id: "pdf-to-word", label: "PDF → Word", icon: "P" },
-  { id: "pdf-to-jpg", label: "PDF → JPG", icon: "IMG" },
-  { id: "pdf-to-excel", label: "PDF → Excel", icon: "X" },
+  { id: "pdf-to-word", label: "PDF para Word", sub: "Documentos DOCX editáveis", icon: "W" },
+  { id: "pdf-to-ppt", label: "PDF para PowerPoint", sub: "Apresentações PPTX", icon: "P" },
+  { id: "pdf-to-excel", label: "PDF para Excel", sub: "Planilhas XLSX", icon: "X" },
+  { id: "word-to-pdf", label: "Word para PDF", sub: "DOCX para PDF fiel", icon: "W" },
+  { id: "ppt-to-pdf", label: "PowerPoint para PDF", sub: "PPTX para PDF fiel", icon: "P" },
+  { id: "excel-to-pdf", label: "Excel para PDF", sub: "XLSX para PDF ajustado", icon: "X" },
+  { id: "pdf-to-jpg", label: "PDF para JPG", sub: "Extraia imagens do PDF", icon: "IMG" },
+  { id: "jpg-to-pdf", label: "JPG para PDF", sub: "Converta fotos em PDF", icon: "IMG" },
+  { id: "html-to-pdf", label: "HTML para PDF", sub: "Páginas Web para PDF", icon: "HTML" },
+  { id: "pdf-to-pdfa", label: "PDF para PDF/A", sub: "Padrão ISO preservado", icon: "A" },
 ];
 
 function ConverterModule() {
@@ -366,7 +372,10 @@ function ConverterModule() {
                 onClick={() => setType(t.id)}
               >
                 <div className="type-icon">{t.icon}</div>
-                <div>{t.label}</div>
+                <div className="type-info">
+                  <div className="type-label">{t.label}</div>
+                  <div className="type-sub">{t.sub}</div>
+                </div>
               </div>
             ))}
           </div>
@@ -633,24 +642,48 @@ export default function App() {
         /* Converter UI */
         .type-grid {
           display: grid;
-          grid-template-columns: 1fr 1fr;
-          gap: 12px;
-          margin-bottom: 16px;
+          grid-template-columns: repeat(2, 1fr);
+          gap: 10px;
+          margin-bottom: 24px;
+          max-height: 420px;
+          overflow-y: auto;
+          padding-right: 4px;
         }
+
+        /* Custom scrollbar for type-grid */
+        .type-grid::-webkit-scrollbar { width: 4px; }
+        .type-grid::-webkit-scrollbar-track { background: transparent; }
+        .type-grid::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 10px; }
 
         .type-card {
           background: rgba(255,255,255,0.02);
           border: 1px solid rgba(255,255,255,0.06);
-          border-radius: 4px;
-          padding: 16px;
+          border-radius: 6px;
+          padding: 12px;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          cursor: pointer;
+          transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+          text-align: left;
+        }
+
+        .type-info {
           display: flex;
           flex-direction: column;
-          align-items: center;
-          gap: 8px;
-          cursor: pointer;
-          color: rgba(255,255,255,0.5);
+          gap: 2px;
+        }
+
+        .type-label {
+          color: rgba(255,255,255,0.8);
           font-size: 11px;
-          transition: all 0.2s ease;
+          font-weight: 500;
+        }
+
+        .type-sub {
+          color: rgba(255,255,255,0.3);
+          font-size: 9px;
+          letter-spacing: 0.02em;
         }
 
         .type-card:hover {
@@ -665,9 +698,30 @@ export default function App() {
         }
 
         .type-icon {
-          font-size: 18px;
+          font-size: 16px;
+          min-width: 32px;
+          height: 32px;
+          background: rgba(255,255,255,0.03);
+          border-radius: 4px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
           font-weight: 800;
           font-family: 'Syne', sans-serif;
+          color: rgba(255,255,255,0.4);
+        }
+
+        .type-card.active .type-icon {
+          background: rgba(0,200,150,0.1);
+          color: rgba(0,200,150,1);
+        }
+
+        .type-card.active .type-label {
+          color: rgba(0,200,150,1);
+        }
+
+        .type-card.active .type-sub {
+          color: rgba(0,200,150,0.5);
         }
 
         .dropzone {
